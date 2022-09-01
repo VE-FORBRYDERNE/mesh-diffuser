@@ -1,0 +1,13 @@
+torch
+numpy
+tqdm
+requests
+optax >= 0.0.5, <= 0.0.9
+dm-haiku == 0.0.5
+jax == 0.2.21
+jaxlib >= 0.1.69, <= 0.3.7
+progressbar2
+mesh_transformer @ git+https://github.com/VE-FORBRYDERNE/mesh-transformer-jax#egg=mesh_transformer
+ftfy
+termcolor
+flask-socketio

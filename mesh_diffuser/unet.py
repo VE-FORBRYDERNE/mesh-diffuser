@@ -58,7 +58,7 @@ class UNetShard(hk.Module):
             time_embedding_channels=self.time_embedding_channels,
             heads=config["attention_head_dim"],
             activation=config.get("activation", "silu"),
-            has_attention=True,
+            simple=False,
             name="middle",
         )
         block_in_channels = self.block_out_channels[1:] + [self.block_out_channels[-1]]

@@ -586,6 +586,23 @@ class UNetLayerShard(hk.Module):
         return x
 
 
+class UNetSimpleLayerShard(hk.Module):
+    def __init__(self, config, *args, **kwargs):
+        self.config = config
+        self.norm_in = ReplicatedGroupNorm(32, name="norm_in")
+        self.attn_1 = UNetAttentionShard(*args, **kwargs, name="attn_1")
+
+    def __call__(self, x, y=None):
+        residual = x
+        N, C, H, W = x.shape
+        x = self.norm_in(x)
+        x = x.reshape((N, C, H * W)).transpose((0, 2, 1))
+        x = self.attn_1(x, y=y)
+        x = x.transpose((0, 2, 1)).reshape((N, C, H, W))
+        x = x + residual
+        return x
+
+
 class UNetDownShard(hk.Module):
     def __init__(
         self,
@@ -659,7 +676,7 @@ class UNetMiddleShard(hk.Module):
         channels_out,
         time_embedding_channels: Optional[int] = None,
         heads: Optional[int] = None,
-        has_attention=True,
+        simple=False,
         has_qkv_bias=False,
         activation="silu",
         name=None,
@@ -669,7 +686,6 @@ class UNetMiddleShard(hk.Module):
         self.shards = config["cores_per_replica"]
         self.time_embedding_channels = time_embedding_channels
         self.channels_out = channels_out
-        self.has_attention = has_attention
         self.heads = heads
 
         self.resnet = ResNetShard(
@@ -681,18 +697,27 @@ class UNetMiddleShard(hk.Module):
             activation=activation,
             name="resnet",
         )
-        self.layer = UNetLayerShard(
-            self.shards,
-            channels_in=self.channels_out,
-            channels_out=self.channels_out,
-            heads=self.heads,
-            has_attention=self.has_attention,
-            attention_first=True,
-            time_embedding_channels=self.time_embedding_channels,
-            has_qkv_bias=has_qkv_bias,
-            activation=activation,
-            name="layer_0",
-        )
+        if simple:
+            self.layer = UNetAttentionShard(
+                self.shards,
+                channels_out=self.channels_out,
+                heads=self.heads,
+                has_qkv_bias=has_qkv_bias,
+                name="layer_0",
+            )
+        else:
+            self.layer = UNetLayerShard(
+                self.shards,
+                channels_in=self.channels_out,
+                channels_out=self.channels_out,
+                heads=self.heads,
+                has_attention=True,
+                attention_first=True,
+                time_embedding_channels=self.time_embedding_channels,
+                has_qkv_bias=has_qkv_bias,
+                activation=activation,
+                name="layer_0",
+            )
 
     def __call__(self, x, y=None, time_embeddings=None):
         x = self.resnet(x, time_embeddings=time_embeddings)

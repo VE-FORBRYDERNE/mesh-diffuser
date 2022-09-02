@@ -44,7 +44,7 @@ class EncoderShard(hk.Module):
             config,
             channels_out=self.block_out_channels[-1],
             time_embedding_channels=None,
-            has_attention=True,
+            simple=True,
             has_qkv_bias=True,
             name="middle",
         )
@@ -81,7 +81,7 @@ class DecoderShard(hk.Module):
             config,
             channels_out=self.block_out_channels[-1],
             time_embedding_channels=None,
-            has_attention=True,
+            simple=True,
             has_qkv_bias=True,
             name="middle",
         )

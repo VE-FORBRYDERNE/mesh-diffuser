@@ -587,7 +587,8 @@ class UNetLayerShard(hk.Module):
 
 
 class UNetSimpleLayerShard(hk.Module):
-    def __init__(self, config, *args, **kwargs):
+    def __init__(self, config, *args, name=None, **kwargs):
+        super().__init__(name=name)
         self.config = config
         self.norm_in = ReplicatedGroupNorm(32, name="norm_in")
         self.attn_1 = UNetAttentionShard(*args, **kwargs, name="attn_1")
@@ -698,7 +699,8 @@ class UNetMiddleShard(hk.Module):
             name="resnet",
         )
         if simple:
-            self.layer = UNetAttentionShard(
+            self.layer = UNetSimpleLayerShard(
+                config,
                 self.shards,
                 channels_out=self.channels_out,
                 heads=self.heads,
